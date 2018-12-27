@@ -191,7 +191,7 @@ arrify@^1.0.1:
   resolved "https://registry.yarnpkg.com/arrify/-/arrify-1.0.1.tgz#898508da2226f380df904728456849c1501a4b0d"
   integrity sha1-iYUI2iIm84DfkEcoRWhJwVAaSw0=
 
-aws-sdk@*, aws-sdk@^2.3.19, aws-sdk@^2.382.0, aws-sdk@^2.7.0:
+aws-sdk@*, aws-sdk@^2.271.1, aws-sdk@^2.3.19, aws-sdk@^2.382.0, aws-sdk@^2.7.0:
   version "2.382.0"
   resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.382.0.tgz#9212bc7aced9c051973578d06ea1978a57ccbd5f"
   integrity sha512-wGjZLYo2ZxGTlj2cHy/0zOfYJKUVBQYG1vpW4Cnbgo3HTtOu906a6tqkiD8QuN0EyEkn7i+wyjSiUFOCh3T/2g==
@@ -401,6 +401,11 @@ dynamodb-localhost@^0.0.6:
     rmdir "^1.2.0"
     tar "^2.0.0"
 
+dynamodb-streams-readable@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/dynamodb-streams-readable/-/dynamodb-streams-readable-1.0.2.tgz#7da641755ccd9a7ace397882bcdaa0388d9a3b07"
+  integrity sha512-7C45xDAljTMkZhnkJ52NFkYpbb0jxBYfvN4g60BxbWWfMbrUwLi2fxVTdz61+xvWGrO/pGGKg09MGvVjkHJSzg==
+
 ecdsa-sig-formatter@1.0.10:
   version "1.0.10"
   resolved "https://registry.yarnpkg.com/ecdsa-sig-formatter/-/ecdsa-sig-formatter-1.0.10.tgz#1c595000f04a8897dfb85000892a0f4c33af86c3"
@@ -422,6 +427,13 @@ events@1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/events/-/events-1.1.1.tgz#9ebdb7635ad099c70dcc4c2a1f5004288e8bd924"
   integrity sha1-nr23Y1rQmccNzEwqH1AEKI6L2SQ=
+
+figures@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/figures/-/figures-2.0.0.tgz#3ab1a2d2a62c8bfb431a0c94cb797a2fce27c962"
+  integrity sha1-OrGi0qYsi/tDGgyUy3l6L84nyWI=
+  dependencies:
+    escape-string-regexp "^1.0.5"
 
 find-cache-dir@^1.0.0:
   version "1.0.0"
@@ -1018,7 +1030,18 @@ serverless-dynamodb-local@^0.2.35:
     dynamodb-localhost "^0.0.6"
     lodash "^4.17.0"
 
-serverless-offline@^3.31.3:
+serverless-offline-dynamodb-streams@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/serverless-offline-dynamodb-streams/-/serverless-offline-dynamodb-streams-1.4.0.tgz#3d4bb37cbde015e377da068ffbba016a44793979"
+  integrity sha512-jYVj+/dPvAfxUlUFpaqrlnXhaaoiiZVJm8Guwn+HCpKnwzoPWFKtxScOf9xbFxtu8yhxR6y5vK7H1+d/pxOrlA==
+  dependencies:
+    aws-sdk "^2.271.1"
+    dynamodb-streams-readable "^1.0.2"
+    figures "^2.0.0"
+    lodash "^4.17.10"
+    serverless-offline "^3.25.6"
+
+serverless-offline@^3.25.6, serverless-offline@^3.31.3:
   version "3.31.3"
   resolved "https://registry.yarnpkg.com/serverless-offline/-/serverless-offline-3.31.3.tgz#ccab814cc97e59dc6cf6cfbcb5dd04ec5f1dc481"
   integrity sha512-Nl42T+RMSYaI+AuSN/3bn2hIXFzU6l50Oiri6173xVoEEKeRdRwdMzBa83/YQA2DQgiIc4zGXHThhcpUVz0OPw==

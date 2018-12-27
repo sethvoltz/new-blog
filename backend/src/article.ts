@@ -44,7 +44,7 @@ class Article {
       TableName: process.env.ARTICLES_TABLE,
       Item: Object.assign({
         id,
-        createdAd: timestamp,
+        createdAt: timestamp,
         updatedAt: timestamp,
       }, article),
     };
@@ -70,6 +70,16 @@ class Article {
   
     await this.validator.validate(article, '/Article');
     return this.db.update(params).promise();
+  }
+
+  async delete(id) {
+    const params = {
+      TableName: process.env.ARTICLES_TABLE,
+      Key: { id },
+      ReturnValues: 'ALL_OLD',
+    };
+  
+    return this.db.delete(params).promise();
   }
 }
 

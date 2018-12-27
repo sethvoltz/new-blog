@@ -12,14 +12,14 @@ provider:
     - Effect: Allow
       Action:
         - dynamodb:DescribeTable
+        - dynamodb:ListStreams
         - dynamodb:Query
         - dynamodb:Scan
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      # Resource: "arn:aws:dynamodb:${self:provider.region}:*:*"
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:custom.articles.tableName}"
+      Resource: "arn:aws:dynamodb:${self:custom.region}:*:table/${self:custom.articles.tableName}"
 
 functions:
   listArticles:
@@ -38,6 +38,19 @@ functions:
     handler: src/index.updateArticle
     events:
       - http: POST articles/{id}
+  deleteArticle:
+    handler: src/index.deleteArticle
+    events:
+      - http: DELETE articles/{id}
+  articleCompute:
+    handler: src/index.articleCompute
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1
+          startingPosition: LATEST
+          arn:
+            Fn::GetAtt: [ ArticlesTable, StreamArn ]
 
 resources:
   Resources:
@@ -56,25 +69,38 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
         TableName: ${self:custom.articles.tableName}
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
 
 custom:
   stage: ${opt:stage, self:provider.stage}
+  region: ${opt:region, self:provider.region}
   articles:
     tableName: ${self:custom.stage}-articles
+
+  # serverless-dynamodb-local - Offline DynamoDB
   dynamodb:
     stages:
       - dev
     start:
       port: 8000
-      inMemory: true
+      dbPath: ${env:PWD}/.dynamodb/
       heapInitial: 200m
       heapMax: 1g
       migrate: true
       seed: true
       convertEmptyValues: true
-      noStart: true
+
+  # Ensure local env attaches to local ddb
+  serverless-offline-dynamodb-streams:
+    endpoint: http://localhost:8000
+    region: ${self:custom.region}
+    accessKeyId: root
+    secretAccessKey: root
+    skipCacheInvalidation: false
 
 plugins:
   - serverless-plugin-typescript
   - serverless-dynamodb-local
+  - serverless-offline-dynamodb-streams
   - serverless-offline

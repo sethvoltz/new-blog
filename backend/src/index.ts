@@ -109,3 +109,39 @@ export const updateArticle = async (event, context) => {
     }
   }  
 };
+
+export const deleteArticle = async (event, context) => {
+  try {
+    const article = new Article();
+    const result = await article.delete(event.pathParameters.id);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({data: result.Attributes}),
+    };
+  } catch (error) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        message: 'Could not update article',
+        error,
+      }),
+    }
+  }  
+};
+
+export const articleCompute = async (event, context) => {
+  console.log('articleCompute called');
+  event.Records.forEach((record) => {
+    console.log(record.eventID)
+    console.log(record.eventName)
+    console.log('DynamoDB Record: %j', record.dynamodb)
+    if (record.eventName === 'INSERT') {
+      console.log('INSERT EVENT. DO WELCOME STUFF')
+    }
+    if (record.eventName === 'REMOVE') {
+      console.log('REMOVAL EVENT. DO REMOVAL STUFF')
+    }
+  })
+  return { message: `Successfully processed ${event.Records.length} records.`, event };
+};
