@@ -21,7 +21,7 @@ export const listArticles = async (event, context) => {
         error,
       }),
     };
-  }  
+  }
 };
 
 export const getArticle = async (event, context) => {
@@ -57,7 +57,7 @@ export const createArticle = async (event, context) => {
       }),
     }
   }
-  
+
   try {
     const article = new Article();
     const result = await article.create(data);
@@ -74,7 +74,7 @@ export const createArticle = async (event, context) => {
         error,
       }),
     }
-  }  
+  }
 };
 
 export const updateArticle = async (event, context) => {
@@ -90,7 +90,7 @@ export const updateArticle = async (event, context) => {
       }),
     }
   }
-  
+
   try {
     const article = new Article();
     const result = await article.update(event.pathParameters.id, data);
@@ -107,7 +107,7 @@ export const updateArticle = async (event, context) => {
         error,
       }),
     }
-  }  
+  }
 };
 
 export const deleteArticle = async (event, context) => {
@@ -127,11 +127,10 @@ export const deleteArticle = async (event, context) => {
         error,
       }),
     }
-  }  
+  }
 };
 
 export const articleCompute = async (event, context) => {
-  console.log('articleCompute called');
   event.Records.forEach((record) => {
     console.log(record.eventID)
     console.log(record.eventName)
@@ -142,6 +141,7 @@ export const articleCompute = async (event, context) => {
     if (record.eventName === 'REMOVE') {
       console.log('REMOVAL EVENT. DO REMOVAL STUFF')
     }
-  })
+  });
+
   return { message: `Successfully processed ${event.Records.length} records.`, event };
 };

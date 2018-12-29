@@ -9,7 +9,7 @@ declare var process: {
     ARTICLES_TABLE: string, // guarantee this exists
     IS_OFFLINE: boolean,
   },
-}
+};
 
 class Article {
   db: DynamoDB.DocumentClient;
@@ -24,7 +24,7 @@ class Article {
     const params = {
       TableName: process.env.ARTICLES_TABLE,
     };
-  
+
     return this.db.scan(params).promise();
   }
 
@@ -36,7 +36,7 @@ class Article {
 
     return this.db.get(params).promise();
   }
-  
+
   async create(article) {
     const timestamp = new Date().getTime();
     const id = uuid.v4();
@@ -67,7 +67,7 @@ class Article {
       UpdateExpression: 'SET title = :title, content = :content, updatedAt = :updatedAt',
       ReturnValues: 'ALL_NEW',
     };
-  
+
     await this.validator.validate(article, '/Article');
     return this.db.update(params).promise();
   }
@@ -78,7 +78,7 @@ class Article {
       Key: { id },
       ReturnValues: 'ALL_OLD',
     };
-  
+
     return this.db.delete(params).promise();
   }
 }

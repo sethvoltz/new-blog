@@ -22,6 +22,12 @@ provider:
       Resource: "arn:aws:dynamodb:${self:custom.region}:*:table/${self:custom.articles.tableName}"
 
 functions:
+  auth:
+    handler: src/authenticator.handler
+    cors: true
+    environment:
+      AUTH0_CLIENT_ID: ${ssm:auth0ClientId}
+      AUTH0_CLIENT_PUBLIC_KEY: ${ssm:auth0PublicKey}
   listArticles:
     handler: src/index.listArticles
     events:
@@ -29,7 +35,11 @@ functions:
   createArticle:
     handler: src/index.createArticle
     events:
-      - http: POST articles
+      - http:
+          path: articles
+          method: post
+          authorizer: auth
+          cors: true
   getArticle:
     handler: src/index.getArticle
     events:
@@ -37,11 +47,19 @@ functions:
   updateArticle:
     handler: src/index.updateArticle
     events:
-      - http: POST articles/{id}
+      - http:
+          path: articles/{id}
+          method: post
+          authorizer: auth
+          cors: true
   deleteArticle:
     handler: src/index.deleteArticle
     events:
-      - http: DELETE articles/{id}
+      - http:
+          path: articles/{id}
+          method: delete
+          authorizer: auth
+          cors: true
   articleCompute:
     handler: src/index.articleCompute
     events:
@@ -54,6 +72,7 @@ functions:
 
 resources:
   Resources:
+    # DynamoDB Table for Blog Articles
     ArticlesTable:
       Type: 'AWS::DynamoDB::Table'
       Properties:
@@ -72,6 +91,30 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
 
+    # This response is needed for custom authorizer failures cors support ¯\_(ツ)_/¯
+    GatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: EXPIRED_TOKEN
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+
+    # API Gateway custom authorizer unauthorized response
+    AuthFailureGatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: UNAUTHORIZED
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+
 custom:
   stage: ${opt:stage, self:provider.stage}
   region: ${opt:region, self:provider.region}
@@ -84,7 +127,7 @@ custom:
       - dev
     start:
       port: 8000
-      dbPath: ${env:PWD}/.dynamodb/
+      # dbPath: ${env:PWD}/.dynamodb/ # currently buggy on restart due to "ShardIterator"
       heapInitial: 200m
       heapMax: 1g
       migrate: true
