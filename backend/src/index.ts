@@ -1,7 +1,8 @@
 'use strict';
 
+import { DynamoDB } from 'aws-sdk';
 import Article from './article';
-import { eventNames } from 'cluster';
+import Aggregate from './aggregate';
 
 export const listArticles = async (event, context) => {
   try {
@@ -131,15 +132,15 @@ export const deleteArticle = async (event, context) => {
 };
 
 export const articleCompute = async (event, context) => {
+  const aggregate = new Aggregate();
+
+  // TODO: collect promises from aggregate calls
   event.Records.forEach((record) => {
-    console.log(record.eventID)
-    console.log(record.eventName)
-    console.log('DynamoDB Record: %j', record.dynamodb)
     if (record.eventName === 'INSERT') {
-      console.log('INSERT EVENT. DO WELCOME STUFF')
+      aggregate.add(DynamoDB.Converter.unmarshall(record.dynamodb.NewImage));
     }
     if (record.eventName === 'REMOVE') {
-      console.log('REMOVAL EVENT. DO REMOVAL STUFF')
+      aggregate.remove(DynamoDB.Converter.unmarshall(record.dynamodb.OldImage));
     }
   });
 

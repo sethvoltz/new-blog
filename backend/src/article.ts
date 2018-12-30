@@ -1,8 +1,10 @@
 import { DynamoDB } from 'aws-sdk';
 import * as dynamodb from 'serverless-dynamodb-client';
 import * as uuid from 'uuid';
+import { format } from 'date-fns';
 
 import Validator from './validator';
+import Aggregate from './aggregate';
 
 declare var process: {
   env: {
@@ -46,6 +48,9 @@ class Article {
         id,
         createdAt: timestamp,
         updatedAt: timestamp,
+        aggregates: {
+          monthly: format(new Date(timestamp), 'YYYY-MM'),
+        }
       }, article),
     };
 
@@ -80,6 +85,25 @@ class Article {
     };
 
     return this.db.delete(params).promise();
+  }
+
+  async archiveMonths() {
+    const aggregate = new Aggregate();
+    return aggregate.getByType('monthly');
+  }
+
+  // monthCode: yyyy-mm
+  async getByMonth(monthCode) {
+    const aggregate = new Aggregate();
+    const results = await aggregate.get(`monthly-${monthCode}`);
+    const params = {
+      RequestItems: {
+        [process.env.ARTICLES_TABLE]: {
+          Keys: (results.Item || {}).ids.map(id => ({ id })),
+        },
+      },
+    };
+    return this.db.batchGet(params);
   }
 }
 
