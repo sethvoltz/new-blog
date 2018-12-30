@@ -16,13 +16,9 @@ class Article {
     this.db = dynamodb.doc;
   }
 
-  async add(record) {
-    if (!record.aggregates) {
-      return Promise.resolve();
-    }
-
-    for (const type in record.aggregates) {
-      const aggregate = `${type}-${record.aggregates[type]}`;
+  async add(id, aggregates) {
+    for (const type in aggregates) {
+      const aggregate = `${type}-${aggregates[type]}`;
       const params = {
         TableName: process.env.AGGREGATES_TABLE,
         Key: { aggregate },
@@ -35,7 +31,7 @@ class Article {
           ':type': type,
           ':none': 0,
           ':increment': 1,
-          ':ids': this.db.createSet([record.id]),
+          ':ids': this.db.createSet([id]),
         },
         UpdateExpression: 'SET #type = if_not_exists(#type, :type), #count = if_not_exists(#count, :none) + :increment ADD #ids :ids',
         ReturnValues: 'ALL_NEW',
@@ -45,13 +41,9 @@ class Article {
     }
   }
 
-  async remove(record) {
-    if (!record.aggregates) {
-      return Promise.resolve();
-    }
-
-    for (const type in record.aggregates) {
-      const aggregate = `${type}-${record.aggregates[type]}`;
+  async remove(id, aggregates) {
+    for (const type in aggregates) {
+      const aggregate = `${type}-${aggregates[type]}`;
 
       const params = {
         TableName: process.env.AGGREGATES_TABLE,
@@ -65,7 +57,7 @@ class Article {
           ':type': type,
           ':none': 0,
           ':decrement': 1,
-          ':ids': this.db.createSet([record.id]),
+          ':ids': this.db.createSet([id]),
         },
         UpdateExpression: 'SET #type = if_not_exists(#type, :type), #count = if_not_exists(#count, :none) - :decrement DELETE #ids :ids',
         ReturnValues: 'ALL_NEW',
@@ -96,11 +88,14 @@ class Article {
         '#ids': 'ids',
       },
       ExpressionAttributeValues: {
-        ':type': 'monthly',
+        ':type': type,
+        ':zero': 0,
       },
+      FilterExpression: '#count > :zero',
       ProjectionExpression: '#type, #aggregate, #count, #ids',
       ScanIndexForward: false,
     };
+    console.log('params', params);
 
     return this.db.query(params).promise();
   }

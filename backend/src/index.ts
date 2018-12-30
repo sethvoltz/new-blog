@@ -4,6 +4,7 @@ import { DynamoDB } from 'aws-sdk';
 import Article from './article';
 import Aggregate from './aggregate';
 
+// GET /articles
 export const listArticles = async (event, context) => {
   try {
     const article = new Article();
@@ -25,6 +26,7 @@ export const listArticles = async (event, context) => {
   }
 };
 
+// GET /articles/{id}
 export const getArticle = async (event, context) => {
   try {
     const article = new Article();
@@ -45,6 +47,7 @@ export const getArticle = async (event, context) => {
   }
 }
 
+// POST /articles
 export const createArticle = async (event, context) => {
   let data;
   try {
@@ -78,6 +81,7 @@ export const createArticle = async (event, context) => {
   }
 };
 
+// POST /articles/{id}
 export const updateArticle = async (event, context) => {
   let data;
   try {
@@ -111,6 +115,7 @@ export const updateArticle = async (event, context) => {
   }
 };
 
+// DELETE /articles/{id}
 export const deleteArticle = async (event, context) => {
   try {
     const article = new Article();
@@ -131,16 +136,47 @@ export const deleteArticle = async (event, context) => {
   }
 };
 
+// GET /archives
+// GET /archives/{year}
+// GET /archives/{year}/{month}
+export const articleArchives = async (event, context) => {
+  const article = new Article();
+
+  let promise;
+  if (event.pathParameters === null) {
+    // /archives
+    promise = article.archiveAllMonths();
+  } else if (event.pathParameters.year && event.pathParameters.month) {
+    // /archives/{year}/{month}
+    promise = article.archiveByMonth(`${event.pathParameters.year}-${event.pathParameters.month}`);
+  } else {
+    // /archives/{year}
+    promise = article.archiveMonthsByYear(event.pathParameters.year);
+  }
+
+  const result = await promise;
+  return {
+    statusCode: 200,
+    body: JSON.stringify({data: result.Item || result.Items}),
+  };
+};
+
 export const articleCompute = async (event, context) => {
   const aggregate = new Aggregate();
 
   // TODO: collect promises from aggregate calls
   event.Records.forEach((record) => {
     if (record.eventName === 'INSERT') {
-      aggregate.add(DynamoDB.Converter.unmarshall(record.dynamodb.NewImage));
+      const image = DynamoDB.Converter.unmarshall(record.dynamodb.NewImage);
+      if (image.aggregates) {
+        aggregate.add(image.id, image.aggregates);
+      }
     }
     if (record.eventName === 'REMOVE') {
-      aggregate.remove(DynamoDB.Converter.unmarshall(record.dynamodb.OldImage));
+      const image = DynamoDB.Converter.unmarshall(record.dynamodb.OldImage);
+      if (image.aggregates) {
+        aggregate.remove(image.id, image.aggregates);
+      }
     }
   });
 

@@ -46,6 +46,12 @@ functions:
     handler: src/index.getArticle
     events:
       - http: GET articles/{id}
+  articleArchives:
+    handler: src/index.articleArchives
+    events:
+      - http: GET archives
+      - http: GET archives/{year}
+      - http: GET archives/{year}/{month}
   updateArticle:
     handler: src/index.updateArticle
     events:
