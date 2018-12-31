@@ -145,37 +145,62 @@ export const articleArchives = async (event, context) => {
   let promise;
   if (event.pathParameters === null) {
     // /archives
-    promise = article.archiveAllMonths();
+    promise = article.archiveAllMonths()
+      .then(data => (data.Items || [])
+        .map(month => ({
+          count: month.count,
+          ids: month.ids.values,
+          year: month.aggregate.split('-')[1],
+          month: month.aggregate.split('-')[2],
+        })));
   } else if (event.pathParameters.year && event.pathParameters.month) {
     // /archives/{year}/{month}
-    promise = article.archiveByMonth(`${event.pathParameters.year}-${event.pathParameters.month}`);
-  } else {
+    promise = article.archiveByMonth(`${event.pathParameters.year}-${event.pathParameters.month}`)
+      .then(data => {
+        if (!data.Item) {
+          return {}
+        }
+
+        return {
+          count: data.Item.count,
+          ids: data.Item.ids.values,
+          year: data.Item.aggregate.split('-')[0],
+          month: data.Item.aggregate.split('-')[1],
+        }
+      });
+} else {
     // /archives/{year}
-    promise = article.archiveMonthsByYear(event.pathParameters.year);
+    promise = article.archiveMonthsByYear(event.pathParameters.year)
+      .then(data => (data.Items || [])
+        .map(month => ({
+          count: month.count,
+          ids: month.ids.values,
+          year: month.aggregate.split('-')[0],
+          month: month.aggregate.split('-')[1],
+        })));
   }
 
   const result = await promise;
   return {
     statusCode: 200,
-    body: JSON.stringify({data: result.Item || result.Items}),
+    body: JSON.stringify({data: result}),
   };
 };
 
 export const articleCompute = async (event, context) => {
   const aggregate = new Aggregate();
 
-  // TODO: collect promises from aggregate calls
-  event.Records.forEach((record) => {
+  await event.Records.map((record) => {
     if (record.eventName === 'INSERT') {
       const image = DynamoDB.Converter.unmarshall(record.dynamodb.NewImage);
       if (image.aggregates) {
-        aggregate.add(image.id, image.aggregates);
+        return aggregate.add(image.id, image.aggregates);
       }
     }
     if (record.eventName === 'REMOVE') {
       const image = DynamoDB.Converter.unmarshall(record.dynamodb.OldImage);
       if (image.aggregates) {
-        aggregate.remove(image.id, image.aggregates);
+        return aggregate.remove(image.id, image.aggregates);
       }
     }
   });

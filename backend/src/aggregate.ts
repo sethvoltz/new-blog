@@ -95,7 +95,6 @@ class Article {
       ProjectionExpression: '#type, #aggregate, #count, #ids',
       ScanIndexForward: false,
     };
-    console.log('params', params);
 
     return this.db.query(params).promise();
   }
