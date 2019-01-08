@@ -5,7 +5,6 @@ declare var process: {
   env: {
     AGGREGATES_TABLE: string, // guarantee this exists
     AGGREGATES_TYPE_INDEX: string,
-    IS_OFFLINE: boolean,
   },
 };
 

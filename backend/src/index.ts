@@ -1,8 +1,6 @@
 'use strict';
 
-import { DynamoDB } from 'aws-sdk';
 import Article from './article';
-import Aggregate from './aggregate';
 
 // GET /articles
 export const listArticles = async (event, context) => {
@@ -136,10 +134,50 @@ export const deleteArticle = async (event, context) => {
   }
 };
 
+// POST /articles/{id}/publish
+export const publishArticle = async (event, context) => {
+  try {
+    const article = new Article();
+    const result = await article.publish(event.pathParameters.id);
+
+    return {
+      statusCode: 200,
+    };
+  } catch (error) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        message: 'Could not publish article',
+        error,
+      }),
+    }
+  }
+};
+
+// DELETE /articles/{id}/publish
+export const unpublishArticle = async (event, context) => {
+  try {
+    const article = new Article();
+    const result = await article.unpublish(event.pathParameters.id);
+
+    return {
+      statusCode: 200,
+    };
+  } catch (error) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        message: 'Could not unpublish article',
+        error,
+      }),
+    }
+  }
+};
+
 // GET /archives
 // GET /archives/{year}
 // GET /archives/{year}/{month}
-export const articleArchives = async (event, context) => {
+export const archives = async (event, context) => {
   const article = new Article();
 
   let promise;
@@ -185,25 +223,4 @@ export const articleArchives = async (event, context) => {
     statusCode: 200,
     body: JSON.stringify({data: result}),
   };
-};
-
-export const articleCompute = async (event, context) => {
-  const aggregate = new Aggregate();
-
-  await event.Records.map((record) => {
-    if (record.eventName === 'INSERT') {
-      const image = DynamoDB.Converter.unmarshall(record.dynamodb.NewImage);
-      if (image.aggregates) {
-        return aggregate.add(image.id, image.aggregates);
-      }
-    }
-    if (record.eventName === 'REMOVE') {
-      const image = DynamoDB.Converter.unmarshall(record.dynamodb.OldImage);
-      if (image.aggregates) {
-        return aggregate.remove(image.id, image.aggregates);
-      }
-    }
-  });
-
-  return { message: `Successfully processed ${event.Records.length} records.`, event };
 };

@@ -10,6 +10,8 @@ provider:
     ARTICLES_TABLE: ${self:custom.articles.tableName}
     AGGREGATES_TABLE: ${self:custom.aggregates.tableName}
     AGGREGATES_TYPE_INDEX: ${self:custom.aggregates.typeIndex}
+    SNS_PUBLISH_ARN: arn:aws:sns:${self:custom.region}:#{AWS::AccountId}:${self:custom.publishTopic}
+
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -22,6 +24,10 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:${self:custom.region}:*:table/${self:custom.articles.tableName}"
+    - Effect: Allow
+      Action:
+        - SNS:Publish
+      Resource: "arn:aws:sns:${self:custom.region}:*:${self:custom.publishTopic}"
 
 functions:
   auth:
@@ -30,6 +36,7 @@ functions:
     environment:
       AUTH0_CLIENT_ID: ${ssm:auth0ClientId}
       AUTH0_CLIENT_PUBLIC_KEY: ${ssm:auth0PublicKey}
+
   listArticles:
     handler: src/index.listArticles
     events:
@@ -46,12 +53,6 @@ functions:
     handler: src/index.getArticle
     events:
       - http: GET articles/{id}
-  articleArchives:
-    handler: src/index.articleArchives
-    events:
-      - http: GET archives
-      - http: GET archives/{year}
-      - http: GET archives/{year}/{month}
   updateArticle:
     handler: src/index.updateArticle
     events:
@@ -68,8 +69,46 @@ functions:
           method: delete
           authorizer: auth
           cors: true
+  publishArticle:
+    handler: src/index.publishArticle
+    events:
+      - http:
+          path: articles/{id}/publish
+          method: post
+          authorizer: auth
+          cors: true
+  unpublishArticle:
+    handler: src/index.unpublishArticle
+    events:
+      - http:
+          path: articles/{id}/publish
+          method: delete
+          authorizer: auth
+          cors: true
+
+  archives:
+    handler: src/index.archives
+    events:
+      - http: GET archives
+      - http: GET archives/{year}
+      - http: GET archives/{year}/{month}
+  categories:
+    handler: src/index.categories
+    events:
+      - http: GET categories
+      - http: GET categories/{category}
+  tags:
+    handler: src/index.tags
+    events:
+      - http: GET tags
+      - http: GET tags/{tag}
+
+  generateAtom:
+    handler: src/near-realtime.atom
+    events:
+      - sns: ${self:custom.publishTopic}
   articleCompute:
-    handler: src/index.articleCompute
+    handler: src/near-realtime.articleCompute
     events:
       - stream:
           type: dynamodb
@@ -157,6 +196,7 @@ resources:
 custom:
   stage: ${opt:stage, self:provider.stage}
   region: ${opt:region, self:provider.region}
+  publishTopic: ${self:custom.stage}-publish-pipeline
   articles:
     tableName: ${self:custom.stage}-articles
   aggregates:
@@ -184,8 +224,21 @@ custom:
     secretAccessKey: root
     skipCacheInvalidation: false
 
+  # Ensure local dev can manage local sns
+  serverless-offline-sns:
+    port: 8001 # a free port for the sns server to run on
+    debug: true
+    accountId: ${self:custom.offline-environment-rewrite.AccountId}
+
+  # Replace AWS::{these} references in envrionment variables
+  offline-environment-rewrite:
+    AccountId: "123456789012" # Match DDB local accountId
+
 plugins:
+  - offline-environment-rewrite
+  - serverless-pseudo-parameters
   - serverless-plugin-typescript
+  - serverless-offline-sns
   - serverless-dynamodb-local
   - serverless-offline-dynamodb-streams
   - serverless-offline

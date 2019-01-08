@@ -1,24 +1,31 @@
-import { DynamoDB } from 'aws-sdk';
+import { DynamoDB, SNS } from 'aws-sdk';
 import * as dynamodb from 'serverless-dynamodb-client';
 import * as uuid from 'uuid';
 import { format } from 'date-fns';
+import sns from './serverless-sns-client';
 
 import Validator from './validator';
 import Aggregate from './aggregate';
-
 declare var process: {
   env: {
     ARTICLES_TABLE: string, // guarantee this exists
-    IS_OFFLINE: boolean,
+    SNS_PUBLISH_ARN: string,
   },
 };
 
 class Article {
   db: DynamoDB.DocumentClient;
+  sns: SNS;
   validator: Validator;
+
+  // Article:
+  //  Required  - title, content, category, tags
+  //  Optional  - subtitle, layout, image, imageAttribution
+  //  Automatic - createdAt, updatedAt, publishedAt, slug
 
   constructor() {
     this.db = dynamodb.doc;
+    this.sns = sns;
     this.validator = new Validator();
   }
 
@@ -99,6 +106,30 @@ class Article {
     };
 
     return this.db.delete(params).promise();
+  }
+
+  async publish(id) {
+    // TODO: Mark article as published or raise error (esp 404)
+    return sns.publish({
+      Message: JSON.stringify({
+        id,
+        type: 'article',
+        action: 'publish',
+      }),
+      TopicArn: process.env.SNS_PUBLISH_ARN,
+    }).promise();
+  }
+
+  async unpublish(id) {
+    // TODO: Mark article as unpublished or raise error (esp 404)
+    return sns.publish({
+      Message: JSON.stringify({
+        id,
+        type: 'article',
+        action: 'unpublish',
+      }),
+      TopicArn: process.env.SNS_PUBLISH_ARN,
+    }).promise();
   }
 
   async archiveAllMonths() {
